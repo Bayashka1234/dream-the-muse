@@ -3,10 +3,15 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "scripts": { "start": "node server.mjs" },
-  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  },
   "dependencies": {
-    "express": "^5.0.0",
-    "dotenv": "^16.0.0"
+    "@vercel/analytics": "^2.0.1",
+    "dotenv": "^16.0.0",
+    "express": "^5.0.0"
   }
 }
