@@ -1,0 +1,90 @@
+name: iOS Simulator Build
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-simulator-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build unsigned Simulator app
+    runs-on: macos-26
+    timeout-minutes: 30
+    defaults:
+      run:
+        shell: bash
+        working-directory: mobile
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check toolchain
+        run: |
+          node --version
+          xcodebuild -version
+          xcrun --sdk iphonesimulator --show-sdk-version
+
+      - name: Install dependencies
+        run: |
+          if [ -f package-lock.json ]; then
+            npm ci
+          else
+            npm install
+          fi
+
+      - name: Generate native iOS project
+        run: |
+          if [ ! -d ios/App/App.xcodeproj ]; then
+            npm run ios:add
+          fi
+          npm run ios:sync
+
+      - name: Build for iOS Simulator
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Debug \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee xcodebuild.log
+
+      - name: Package Simulator app
+        run: |
+          test -d build/Build/Products/Debug-iphonesimulator/App.app
+          mkdir -p artifacts
+          ditto -c -k --sequesterRsrc --keepParent \
+            build/Build/Products/Debug-iphonesimulator/App.app \
+            artifacts/Dream-the-Muse-Simulator.zip
+
+      - name: Upload Simulator app
+        uses: actions/upload-artifact@v4
+        with:
+          name: Dream-the-Muse-iOS-Simulator
+          path: mobile/artifacts/Dream-the-Muse-Simulator.zip
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Upload build diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-simulator-build-diagnostics
+          path: |
+            mobile/xcodebuild.log
+            mobile/package-lock.json
+          if-no-files-found: ignore
+          retention-days: 7
