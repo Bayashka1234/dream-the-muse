@@ -1,0 +1,19 @@
+{
+  "name": "dream-the-muse-mobile",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "ios:add": "cap add ios",
+    "ios:sync": "cap sync ios",
+    "ios:open": "cap open ios"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/ios": "^8.0.0"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.0.0",
+    "typescript": "^5.0.0"
+  }
+}

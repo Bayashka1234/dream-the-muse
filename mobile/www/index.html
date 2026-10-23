@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="referrer" content="no-referrer">
+<title>Dream the Muse</title>
+<style>
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:#09130e;color:#e4efe8;font:16px system-ui,sans-serif}body{height:100dvh;height:var(--app-height,100dvh);padding:max(8px,env(safe-area-inset-top)) max(8px,env(safe-area-inset-right)) max(8px,env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left));display:flex;justify-content:center}main{width:min(100%,760px);min-height:0;display:flex;flex-direction:column;border:1px solid #3d654c;border-radius:14px;overflow:hidden}header,footer{padding:12px;flex-shrink:0}h1{font-size:22px;color:#e5cd8e;margin:0 0 8px}summary{cursor:pointer;padding:8px 0}label{display:block;font-size:14px;margin:8px 0}input,textarea,button{font:inherit;font-size:16px;min-height:48px;border:1px solid #4b7159;border-radius:8px;background:#14251b;color:inherit;padding:11px}input{width:100%}textarea{flex:1;min-width:0;resize:none;max-height:130px;line-height:1.4}button{cursor:pointer}button:disabled{opacity:.5}form,.controls{display:flex;gap:8px;align-items:flex-end}.controls{margin-top:8px}#log{flex:1;min-height:0;overflow:auto;overscroll-behavior-y:contain;padding:12px;border-block:1px solid #304d3a}article{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;margin-bottom:10px;line-height:1.5;background:#182d20;border-radius:8px}.user{margin-left:6%;background:#294532}.assistant{margin-right:6%}.error{color:#ffb9b9}#status,small{font-size:13px;color:#bfcec3}#status{min-height:20px;margin:8px 0 0}:focus-visible{outline:2px solid #e5cd8e;outline-offset:2px}
+</style>
+</head>
+<body><main>
+<header><h1>Dream the Muse</h1><details id="settings" open><summary>Подключение и доступ</summary><label for="endpoint">HTTPS-адрес API с /api/chat</label><input id="endpoint" type="url" placeholder="https://YOUR-SERVICE.onrender.com/api/chat" autocomplete="off" spellcheck="false"><label for="access">Код доступа</label><input id="access" type="password" autocomplete="off"><small>Код остаётся в памяти страницы. Не вводите ключ OpenRouter. Вводите только адрес своего доверенного API.</small><div class="controls"><button id="forget" type="button">Забыть код</button><button id="reset" type="button">Новый разговор</button></div></details></header>
+<section id="log" role="log" aria-live="polite" aria-label="Переписка"></section>
+<footer><form id="form"><textarea id="message" rows="1" maxlength="4000" required aria-label="Сообщение" placeholder="Что создадим сегодня?"></textarea><button id="send" type="submit">SYNC</button></form><p id="status" role="status">Укажите адрес API и код доступа.</p></footer>
+</main><script type="module">
+const $=id=>document.getElementById(id);
+const input=$('message'),access=$('access'),endpoint=$('endpoint'),log=$('log'),status=$('status');
+let history=[],busy=false;
+try{endpoint.value=localStorage.getItem('dream-muse-api-url')||'';}catch{}
+function viewport(){document.documentElement.style.setProperty('--app-height',Math.round(window.visualViewport?.height||innerHeight)+'px');}
+window.visualViewport?.addEventListener('resize',viewport);window.addEventListener('resize',viewport);viewport();
+function resize(){input.style.height='auto';input.style.height=Math.min(input.scrollHeight,130)+'px';}
+input.addEventListener('input',resize);resize();
+function add(role,text){const node=document.createElement('article');node.className=role;node.textContent=text;log.append(node);while(log.children.length>80)log.firstElementChild.remove();log.scrollTop=log.scrollHeight;}
+function lock(value){busy=value;for(const id of ['message','access','endpoint','send','reset','forget'])$(id).disabled=value;}
+$('forget').onclick=()=>{access.value='';status.textContent='Код удалён из памяти поля.';};
+$('reset').onclick=()=>{if(!busy){history=[];log.replaceChildren();status.textContent='Новый разговор начат.';}};
+$('form').addEventListener('submit',async event=>{
+ event.preventDefault();if(busy)return;const content=input.value.trim(),token=access.value.trim();if(!content)return;
+ let url;try{url=new URL(endpoint.value.trim());if(url.protocol!=='https:'||url.username||url.password||url.search||url.hash)throw Error();}catch{status.textContent='Укажите полный HTTPS-адрес своего API без параметров и пароля.';$('settings').open=true;return;}
+ if(!token){status.textContent='Введите код доступа.';$('settings').open=true;return;}
+ if(content.length>4000){status.textContent='Максимум 4000 символов.';return;}
+ const messages=[...history,{role:'user',content}];const encoder=new TextEncoder();
+ const tooBig=()=>messages.length>17||messages.reduce((n,m)=>n+m.content.length,0)>20000||encoder.encode(JSON.stringify({messages})).length>40000;
+ while(messages.length>1&&tooBig())messages.splice(0,2);
+ if(tooBig()){status.textContent='Сократите сообщение.';return;}
+ try{localStorage.setItem('dream-muse-api-url',url.href);}catch{}
+ add('user',content);input.value='';resize();lock(true);status.textContent='Ожидаю ответ…';
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),65000);
+ try{
+  const response=await fetch(url.href,{method:'POST',credentials:'omit',redirect:'error',cache:'no-store',headers:{'Content-Type':'application/json','X-Chat-Access':token},body:JSON.stringify({messages}),signal:controller.signal});
+  const data=await response.json().catch(()=>null);
+  if(!response.ok){if(response.status===401)$('settings').open=true;throw Error(typeof data?.error==='string'?data.error:'HTTP '+response.status);}
+  if(typeof data?.reply!=='string'||!data.reply.trim())throw Error('Сервер не вернул текст.');
+  const reply=data.reply.trim();add('assistant',reply);
+  if(reply.length<=4000){history=[...messages,{role:'assistant',content:reply}];status.textContent=data.incomplete?'Ответ достиг лимита генерации.':'Ответ получен.';}
+  else{history=[];status.textContent='Ответ получен. Контекст сброшен: ответ превышает лимит API.';}
+ }catch(error){add('error',error.name==='AbortError'?'Время ожидания истекло. Сервер мог продолжить выполнение.':error instanceof TypeError?'Ошибка сети, CORS или перенаправления API.':error.message);input.value=content;resize();status.textContent='Текст восстановлен. Неудачная отправка не включена в контекст.';}
+ finally{clearTimeout(timer);lock(false);}
+});
+</script></body></html>
