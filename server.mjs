@@ -22,6 +22,12 @@ app.get('/api/health', (_req, res) => {
 app.all('/api/chat', express.text({ type: 'application/json', limit: 40000 }),
   (req, res, next) => Promise.resolve(handler(req, res)).catch(next));
 app.use('/api', (_req, res) => res.status(404).json({ error: 'API route not found.' }));
+// Serve Speed Insights script
+app.get('/speed-insights.js', (_req, res) => {
+  res.setHeader('Content-Type', 'application/javascript');
+  res.setHeader('Cache-Control', 'public, max-age=3600');
+  res.sendFile(fileURLToPath(new URL('./node_modules/@vercel/speed-insights/dist/index.mjs', import.meta.url)));
+});
 // Serve only the HTML file, never expose the repository root or .env.
 app.get('/', (_req, res) => res.sendFile(indexFile));
 app.use((_req, res) => res.status(404).send('Not found.'));
