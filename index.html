@@ -25,6 +25,7 @@ body{margin:0;background:#10101a;color:#f4f0ff;font:16px system-ui,sans-serif}ma
 </form>
 </main>
 <script type="module">
+import{injectSpeedInsights}from'https://cdn.jsdelivr.net/npm/@vercel/speed-insights@1/dist/index.mjs';injectSpeedInsights();
 const form=document.querySelector('#chat');
 const access=document.querySelector('#access');
 const input=document.querySelector('#message');
