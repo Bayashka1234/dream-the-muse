@@ -6,6 +6,7 @@
   "scripts": { "start": "node server.mjs" },
   "engines": { "node": ">=22" },
   "dependencies": {
+    "@vercel/speed-insights": "^1.0.14",
     "express": "^5.0.0",
     "dotenv": "^16.0.0"
   }
