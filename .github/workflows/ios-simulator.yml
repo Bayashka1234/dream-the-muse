@@ -24,9 +24,18 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Set up Node.js
+        id: node
         uses: actions/setup-node@v4
         with:
           node-version: '22'
+
+      - name: Cache mobile node_modules
+        id: modules-cache
+        if: hashFiles('mobile/package-lock.json') != ''
+        uses: actions/cache@v4
+        with:
+          path: mobile/node_modules
+          key: mobile-modules-v1-${{ runner.os }}-${{ runner.arch }}-node-${{ steps.node.outputs.node-version }}-${{ hashFiles('mobile/package-lock.json', 'mobile/package.json') }}
 
       - name: Check toolchain
         run: |
@@ -35,6 +44,7 @@ jobs:
           xcrun --sdk iphonesimulator --show-sdk-version
 
       - name: Install dependencies
+        if: steps.modules-cache.outputs.cache-hit != 'true'
         run: |
           if [ -f package-lock.json ]; then
             npm ci
