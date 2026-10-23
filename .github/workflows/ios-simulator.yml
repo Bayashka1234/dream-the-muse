@@ -1,6 +1,12 @@
 name: iOS Simulator Build
 
 on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'mobile/**'
+      - '.github/workflows/ios-simulator.yml'
   workflow_dispatch:
 
 permissions:
