@@ -38,7 +38,7 @@ jobs:
       - name: Cache mobile node_modules
         id: modules-cache
         if: hashFiles('mobile/package-lock.json') != ''
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: mobile/node_modules
           key: mobile-modules-v1-${{ runner.os }}-${{ runner.arch }}-node-${{ steps.node.outputs.node-version }}-${{ hashFiles('mobile/package-lock.json', 'mobile/package.json') }}
