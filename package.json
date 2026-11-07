@@ -7,6 +7,7 @@
   "engines": { "node": ">=22" },
   "dependencies": {
     "express": "^5.0.0",
-    "dotenv": "^16.0.0"
+    "dotenv": "^16.0.0",
+    "@vercel/speed-insights": "^2.1.0"
   }
 }
